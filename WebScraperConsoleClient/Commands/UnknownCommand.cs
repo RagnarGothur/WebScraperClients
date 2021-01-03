@@ -1,20 +1,27 @@
-﻿using System;
+﻿using Serilog;
+
+using System;
 
 namespace WebScraperConsoleClient.Commands
 {
     internal class UnknownCommand : ConsoleCommandBase, IConsoleCommand
     {
+        public string Name { get; }
         public string[] Args { get; }
 
-        public UnknownCommand(string[] args)
+        public UnknownCommand(string[] args, string name)
         {
             Args = args;
+            Name = name;
         }
 
-        public int Execute()
+        public ExitCode Execute()
         {
-            Console.Error.WriteLine("Unknown command");
-            return 0;
+            var errMsg = $"Unknown command \"{Name}\"";
+            Log.Logger.Warning(errMsg);
+            Console.Error.WriteLine(errMsg);
+
+            return ExitCode.NoError;
         }
     }
 }

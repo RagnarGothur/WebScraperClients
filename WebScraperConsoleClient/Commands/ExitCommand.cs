@@ -1,4 +1,6 @@
-﻿namespace WebScraperConsoleClient.Commands
+﻿using System;
+
+namespace WebScraperConsoleClient.Commands
 {
     public class ExitCommand : ConsoleCommandBase, IConsoleCommand
     {
@@ -9,9 +11,10 @@
             Args = args;
         }
 
-        public int Execute()
+        public ExitCode Execute()
         {
-            return -1;
+            Environment.Exit((int)ExitCode.NoError);
+            return ExitCode.NoError;
         }
     }
 }

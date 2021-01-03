@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Serilog;
+
+using System;
 
 namespace WebScraperConsoleClient
 {
@@ -6,31 +8,50 @@ namespace WebScraperConsoleClient
     {
         public static int Main(string[] args)
         {
+            Log.Logger = CreateSerilogLogger();
+
             try
             {
                 foreach (string arg in args)
                     CommandParser.Parse(arg).Execute();
 
-                int exit = 0;
+                var exitCode = ExitCode.NoError;
                 do
                 {
-                    Console.WriteLine("Enter a command:");
+                    Console.Write(">");
 
                     var input = Console.ReadLine();
                     var command = CommandParser.Parse(input);
-                    exit = command.Execute();
+                    exitCode = command.Execute();
                 }
-                while (exit == 0);
+                while (exitCode == ExitCode.NoError);
 
-                return exit;
+                return (int)exitCode;
             }
             catch (Exception e)
             {
-                Console.Error.WriteLine(e.Message);
-                Console.Error.WriteLine(e.StackTrace);
+                Console.Error.WriteLine($"{e.Message} | see logs for more information");
+                Log.Logger.Error(e.Message);
+                Log.Logger.Error(e.StackTrace);
 
-                return 1;
+                return (int)ExitCode.CriticalError;
             }
+        }
+
+        private static ILogger CreateSerilogLogger()
+        {
+            const string path = @"..\..\..\..\..\log.txt";
+            const string logTemplate = "[{Timestamp:yyyy:MM:dd:HH:mm:ss.fff} {Level:u3}] {Message:lj}{NewLine}{Exception}";
+
+            return new LoggerConfiguration()
+                .MinimumLevel.Verbose()
+                .Enrich.FromLogContext()
+                .WriteTo.File(
+                    path,
+                    outputTemplate: logTemplate,
+                    rollingInterval: RollingInterval.Day
+                )
+                .CreateLogger();
         }
     }
 }

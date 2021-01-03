@@ -31,7 +31,7 @@ namespace WebScraperConsoleClient
                 case "GetImages":
                     return new GetImagesCommand(args);
                 default:
-                    return new UnknownCommand(args);
+                    return new UnknownCommand(args, name);
             }
         }
     }

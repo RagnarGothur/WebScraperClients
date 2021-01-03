@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Serilog;
+
+using System;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -13,12 +15,12 @@ namespace WebScraperConsoleClient.Commands
 
         public string[] Args { get; }
 
-        private static HttpClient _httpClient = new HttpClient();
+        private static readonly HttpClient _httpClient = new HttpClient();
 
-        private string _webScraperUrl;
-        private string _url;
-        private int _imageCount;
-        private int _threadCount;
+        private readonly string _webScraperUrl;
+        private readonly string _url;
+        private readonly int _imageCount;
+        private readonly int _threadCount;
 
         public GetImagesCommand(string[] args)
         {
@@ -36,22 +38,38 @@ namespace WebScraperConsoleClient.Commands
             );
         }
 
-        public int Execute()
+        public ExitCode Execute()
         {
-            var url = $"{_webScraperUrl}?url={_url}&imageCount={_imageCount}&threadCount={_threadCount}";
+            try
+            {
+                var url = $"{_webScraperUrl}?url={_url}&imageCount={_imageCount}&threadCount={_threadCount}";
 
-            var response = Task.Run(async () => await _httpClient.GetAsync(url)).Result;
-            response.EnsureSuccessStatusCode();
-            var isFullyCompleted = response.Headers.GetValues(FULLY_COMPLETED_HEADER).First();
+                var response = Task.Run(async () => await _httpClient.GetAsync(url)).Result;
+                response.EnsureSuccessStatusCode();
+                var isFullyCompleted = response.Headers.GetValues(FULLY_COMPLETED_HEADER).First();
 
-            if (isFullyCompleted == "0")
-                Console.Out.WriteLine("partially completed");
+                if (isFullyCompleted == "0")
+                    Console.Out.WriteLine("partially completed");
 
-            Console.Out.WriteLine(
-                Task.Run(async () => await response.Content.ReadAsStringAsync()).Result
-            );
+                Console.Out.WriteLine(
+                    Task.Run(async () => await response.Content.ReadAsStringAsync()).Result
+                );
+            }
+            catch (Exception e) when
+            (
+                e is HttpRequestException
+                ||
+                (e is AggregateException ae && ae.InnerException is HttpRequestException)
+            )
+            {
+                Console.Error.WriteLine($"{e.Message} | see logs for more information");
+                Log.Logger.Error(e.Message);
+                Log.Logger.Error(e.StackTrace);
+                Log.Logger.Error(e.InnerException?.Message);
+                Log.Logger.Error(e.InnerException?.StackTrace);
+            }
 
-            return 0;
+            return ExitCode.NoError;
         }
     }
 }

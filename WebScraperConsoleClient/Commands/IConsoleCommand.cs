@@ -4,6 +4,6 @@
     {
         public string[] Args { get; }
 
-        public int Execute();
+        public ExitCode Execute();
     }
 }
